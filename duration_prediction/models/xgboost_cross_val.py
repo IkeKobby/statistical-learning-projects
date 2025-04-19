@@ -37,13 +37,20 @@ def load_model(model_path):
         print(f"Error loading model: {e}")
         sys.exit(1)
 
-def perform_cross_validation(model, data, n_folds=10, model_name="Best Model"):
+def perform_cross_validation(model, data, n_folds=10, model_name="Best Model", processed_data=None):
     """Perform k-fold cross-validation on the entire dataset"""
     print(f"\nPerforming {n_folds}-fold cross-validation for {model_name}...")
     
     # Prepare features and target
-    X = data.drop('Duration_In_Min', axis=1)
-    y = data['Duration_In_Min']
+    if processed_data is not None:
+        # Use the pre-processed data (for XGBoost)
+        X = processed_data
+        y = data['Duration_In_Min']
+        print(f"Using pre-processed data with shape: {X.shape}")
+    else:
+        # Use raw data (for models that handle categorical features internally)
+        X = data.drop('Duration_In_Min', axis=1)
+        y = data['Duration_In_Min']
     
     # Define cross-validation strategy
     kf = KFold(n_splits=n_folds, shuffle=True, random_state=42)
@@ -85,6 +92,14 @@ def train_new_xgboost_model(data):
     X = data.drop('Duration_In_Min', axis=1)
     y = data['Duration_In_Min']
     
+    # Handle categorical features (XGBoost needs numerical features)
+    categorical_cols = X.select_dtypes(include=['object']).columns
+    print(f"Preprocessing categorical features: {list(categorical_cols)}")
+    
+    # Use pandas get_dummies to one-hot encode categorical features
+    X_processed = pd.get_dummies(X, columns=categorical_cols, drop_first=True)
+    print(f"Data shape after one-hot encoding: {X_processed.shape}")
+    
     # Set up XGBoost model with optimized parameters
     model = xgb.XGBRegressor(
         n_estimators=200,
@@ -100,7 +115,7 @@ def train_new_xgboost_model(data):
     )
     
     print("XGBoost model configured with optimized parameters")
-    return model
+    return model, X_processed
 
 def visualize_cv_results(cv_results, output_dir='duration_prediction/visualizations', prefix='cv'):
     """Generate visualizations for cross-validation results"""
@@ -326,10 +341,10 @@ def main():
     # Compare with XGBoost if requested
     if args.compare:
         # Train a new XGBoost model
-        xgb_model = train_new_xgboost_model(data)
+        xgb_model, X_processed = train_new_xgboost_model(data)
         
         # Perform cross-validation on XGBoost model
-        cv_results_xgb = perform_cross_validation(xgb_model, data, args.folds, "XGBoost")
+        cv_results_xgb = perform_cross_validation(xgb_model, data, args.folds, "XGBoost", X_processed)
         
         # Visualize cross-validation results for XGBoost model
         visualize_cv_results(cv_results_xgb, prefix='xgb')
