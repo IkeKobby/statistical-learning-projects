@@ -313,7 +313,7 @@ def main():
                         help='Path to the trained best model')
     parser.add_argument('--data', type=str, default='duration_prediction/processed_data/engineered_data.csv',
                         help='Path to the engineered training data')
-    parser.add_argument('--test', type=str, default='duration_prediction/processed_data/lc_transformed_test_data.csv',
+    parser.add_argument('--test', type=str, default='duration_prediction/lc_transformed_test_data.csv',
                         help='Path to the test data for prediction')
     parser.add_argument('--output', type=str, default='duration_prediction/predictions/predicted_duration_in_minutes.csv',
                         help='Path to save the predictions')

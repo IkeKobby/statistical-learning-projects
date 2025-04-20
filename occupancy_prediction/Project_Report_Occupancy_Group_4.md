@@ -256,11 +256,22 @@ The hyperparameter tuning process revealed several insights:
 
 Based on performance metrics and practical considerations (such as interpretability and prediction speed), we selected the Random Forest model as our final model for occupancy prediction. The tuned Random Forest model achieved the best performance with reasonable computational requirements.
 
-### 5.6 Prediction Pipeline Implementation
+### 5.6 Enhanced Model Comparison
+
+As part of our thorough analysis, we expanded our initial model set to include additional advanced algorithms:
+
+1. **Support Vector Regression (SVR)**: To test kernel-based approaches for capturing complex relationships.
+2. **CatBoost**: A gradient boosting algorithm optimized for handling categorical features.
+3. **AdaBoost**: An ensemble method that focuses on data points with high prediction errors.
+4. **Decision Tree**: As a baseline for more complex tree-based methods.
+
+This enhanced model comparison allowed us to more comprehensively evaluate the relative strengths of different algorithmic approaches and ensure we selected the optimal model.
+
+### 5.7 Prediction Pipeline Implementation
 
 To facilitate the practical application of our model, we developed a robust prediction pipeline that can be used for making predictions on new data. The pipeline consists of several key components:
 
-#### 5.6.1 Pipeline Architecture
+#### 5.7.1 Pipeline Architecture
 
 Our prediction pipeline is structured as follows:
 
@@ -273,7 +284,7 @@ Our prediction pipeline is structured as follows:
 
 The pipeline is implemented in Python and handles preprocessing, feature engineering, and prediction in a consistent manner.
 
-#### 5.6.2 Implementation Details
+#### 5.7.2 Implementation Details
 
 The prediction process is implemented in a modular fashion:
 
@@ -310,7 +321,7 @@ def make_predictions(model, test_file, output_file=None):
     return predictions
 ```
 
-#### 5.6.3 Usage Example
+#### 5.7.3 Usage Example
 
 The prediction pipeline can be used with a simple command line interface:
 
@@ -338,12 +349,17 @@ The table below presents a comprehensive comparison of all models evaluated duri
 
 | Model | RMSE (students) | MAE (students) | R² | Training Time (s) | Notes |
 |-------|--------------|-----------|-----|-------------------|-------|
-| Linear Regression | 4.93 | 3.87 | 0.35 | 0.02 | Baseline model; limited ability to capture non-linear patterns |
+| Linear Regression | 4.93 | 3.87 | 0.35 | 0.03 | Baseline model; limited ability to capture non-linear patterns |
 | Ridge Regression | 4.93 | 3.87 | 0.35 | 0.01 | Minimal improvement over basic linear regression |
-| Lasso Regression | 5.04 | 3.94 | 0.32 | 0.13 | Feature selection did not improve performance |
-| Random Forest | 3.62 | 2.72 | 0.65 | 14.49 | Best performance; excellent at capturing complex patterns |
-| Gradient Boosting | 4.14 | 3.23 | 0.54 | 3.33 | Good performance but not as strong as Random Forest |
-| XGBoost | 3.70 | 2.85 | 0.64 | 0.40 | Strong performance with efficient computation |
+| Lasso Regression | 5.04 | 3.94 | 0.32 | 0.06 | Feature selection did not improve performance |
+| Decision Tree | 4.87 | 3.39 | 0.37 | 0.13 | Simple baseline for tree-based models |
+| Random Forest | 3.62 | 2.72 | 0.65 | 7.72 | Best performance; excellent at capturing complex patterns |
+| Gradient Boosting | 4.14 | 3.23 | 0.54 | 2.08 | Good performance but not as strong as Random Forest |
+| XGBoost | 3.71 | 2.86 | 0.63 | 0.99 | Strong performance with efficient computation |
+| LightGBM | 3.64 | 2.83 | 0.65 | 0.20 | Second-best performance with very fast training |
+| AdaBoost | 4.98 | 3.98 | 0.34 | 0.40 | Limited improvement over simple models |
+| SVR | 5.45 | 4.16 | 0.21 | 5.08 | Poor scaling with dataset size |
+| CatBoost | 3.97 | 3.11 | 0.58 | 0.30 | Good handling of categorical variables |
 
 All metrics were calculated using 5-fold cross-validation on the training set, with final evaluation on a held-out test set comprising 20% of the original data.
 
@@ -351,8 +367,9 @@ The performance trend clearly indicates that:
 
 1. Tree-based models significantly outperform linear models for this task
 2. Random Forest offers the best balance of prediction accuracy and interpretability
-3. The non-linear nature of occupancy patterns requires models capable of capturing complex relationships
-4. Hyperparameter tuning provided modest but meaningful improvements to model performance
+3. LightGBM provides nearly equivalent performance with much faster training time
+4. The non-linear nature of occupancy patterns requires models capable of capturing complex relationships
+5. Hyperparameter tuning provided modest but meaningful improvements to model performance
 
 ### 6.2 Feature Importance
 
@@ -427,11 +444,38 @@ Based on this error analysis, we identified several strategies for future improv
 When applied to the test dataset (`lc_transformed_test_data.csv`), our model generated predictions with the following characteristics:
 
 - Minimum predicted occupancy: 1 student
-- Maximum predicted occupancy: 37 students
+- Maximum predicted occupancy: 38 students
 - Mean predicted occupancy: 11.66 students
-- Median predicted occupancy: 11 students
+- Median predicted occupancy: 11.49 students
+- Standard deviation: 4.71 students
 
-The distribution of predictions aligns well with our understanding of typical occupancy patterns, with most predictions (70.9%) falling between 5-15 students.
+The distribution of predictions follows a pattern consistent with historical occupancy trends. The detailed breakdown of predicted occupancy ranges is as follows:
+
+**Occupancy Range Distribution:**
+| Occupancy Range | Percentage of Time Slots |
+|-----------------|--------------------------|
+| 0-5 students    | 7.61% |
+| 6-10 students   | 28.60% |
+| 11-15 students  | 41.42% |
+| 16-20 students  | 18.22% |
+| 21-25 students  | 3.55% |
+| 26-30 students  | 0.49% |
+| 31-35 students  | 0.06% |
+| 36-40 students  | 0.05% |
+| 41-45 students  | 0.00% |
+| 46-50 students  | 0.00% |
+
+This distribution aligns well with our understanding of typical occupancy patterns, with the majority of predictions (70.02%) falling in the 6-15 student range. The low percentage of very high occupancy predictions (>25 students) is consistent with the historical data, which shows that such high occupancy levels are relatively rare.
+
+**Figure 11: Distribution of Predicted Occupancy**
+
+![Distribution of Predicted Occupancy](visualizations/occupancy_predictions_histogram.png)
+
+**Figure 12: Predicted Occupancy by Range**
+
+![Predicted Occupancy by Range](visualizations/occupancy_predictions_by_range.png)
+
+These visualizations provide a clear picture of the expected occupancy patterns, which can be valuable for resource planning and staffing decisions.
 
 ## 7. Conclusions and Recommendations
 
@@ -468,6 +512,7 @@ Based on our findings, we recommend:
    - Implement regular model retraining to adapt to changing patterns.
    - Develop confidence intervals for predictions to better manage uncertainty.
    - Create a monitoring system to detect prediction drift over time.
+   - Explore ensemble methods combining multiple model types for potentially improved performance.
 
 ### 7.3 Impact Assessment
 
@@ -498,4 +543,6 @@ Successfully implementing this prediction model could yield several benefits:
 
 9. Chen, T., & Guestrin, C. (2016). XGBoost: A scalable tree boosting system. In Proceedings of the 22nd ACM SIGKDD International Conference on Knowledge Discovery and Data Mining.
 
-10. Hastie, T., Tibshirani, R., & Friedman, J. (2009). The elements of statistical learning: Data mining, inference, and prediction. Springer Science & Business Media. 
+10. Hastie, T., Tibshirani, R., & Friedman, J. (2009). The elements of statistical learning: Data mining, inference, and prediction. Springer Science & Business Media.
+
+11. Prokhorenkova, L., Gusev, G., Vorobev, A., Dorogush, A. V., & Gulin, A. (2018). CatBoost: unbiased boosting with categorical features. Advances in Neural Information Processing Systems, 31. 

@@ -7,8 +7,10 @@ import argparse
 from sklearn.model_selection import train_test_split, GridSearchCV, cross_val_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
-from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor, AdaBoostRegressor
+from sklearn.tree import DecisionTreeRegressor
 from sklearn.linear_model import LinearRegression, Ridge, Lasso
+from sklearn.svm import SVR
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import xgboost as xgb
 import lightgbm as lgb
@@ -21,6 +23,14 @@ from sklearn.impute import SimpleImputer
 import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
+
+# Try to import CatBoost, but continue without it if not available
+try:
+    from catboost import CatBoostRegressor
+    has_catboost = True
+except ImportError:
+    logger.warning("CatBoost not installed, will skip this model")
+    has_catboost = False
 
 def create_features(df):
     """Create features for the model"""
@@ -193,7 +203,7 @@ def evaluate_model(model, X_test, y_test):
         'predictions': predictions
     }
 
-def visualize_results(y_test, predictions, output_dir="../visualizations"):
+def visualize_results(y_test, predictions, output_dir="occupancy_prediction/visualizations"):
     """Generate visualizations of model performance"""
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -279,11 +289,18 @@ def train_and_evaluate_models(X_train, X_test, y_train, y_test, feature_names):
         'Linear Regression': LinearRegression(),
         'Ridge Regression': Ridge(alpha=1.0),
         'Lasso Regression': Lasso(alpha=0.1),
+        'Decision Tree': DecisionTreeRegressor(random_state=42),
         'Random Forest': RandomForestRegressor(n_estimators=100, random_state=42),
         'Gradient Boosting': GradientBoostingRegressor(n_estimators=100, random_state=42),
         'XGBoost': xgb.XGBRegressor(n_estimators=100, learning_rate=0.1, random_state=42),
-        'LightGBM': lgb.LGBMRegressor(random_state=42, verbose=-1)
+        'LightGBM': lgb.LGBMRegressor(random_state=42, verbose=-1),
+        'AdaBoost': AdaBoostRegressor(n_estimators=100, random_state=42),
+        'SVR': SVR(kernel='rbf', C=1.0, epsilon=0.1)
     }
+    
+    # Add CatBoost if available
+    if has_catboost:
+        models['CatBoost'] = CatBoostRegressor(iterations=100, learning_rate=0.1, random_seed=42, verbose=0)
     
     results = {}
     best_rmse = float('inf')
@@ -415,9 +432,10 @@ def tune_hyperparameters(X_train, y_train, best_model_name):
 
 def main():
     parser = argparse.ArgumentParser(description='Train a model to predict occupancy in the Learning Center')
-    parser.add_argument('--data', type=str, default='occupancy_train_data.csv', help='Path to training data')
+    parser.add_argument('--data', type=str, default='occupancy_prediction/processed_data/occupancy_train_data.csv', help='Path to training data')
     parser.add_argument('--visualize', action='store_true', help='Generate visualizations')
     parser.add_argument('--tune', action='store_true', help='Perform hyperparameter tuning')
+    parser.add_argument('--output_dir', type=str, default='occupancy_prediction/predictions', help='Directory to save predictions and models')
     args = parser.parse_args()
     
     # Load data
@@ -432,8 +450,8 @@ def main():
     logger.info(f"Missing values in each column:\n{missing_values[missing_values > 0]}")
     
     # Create output directories
-    os.makedirs('models', exist_ok=True)
-    os.makedirs('../visualizations', exist_ok=True)
+    os.makedirs(args.output_dir, exist_ok=True)
+    os.makedirs('occupancy_prediction/visualizations', exist_ok=True)
     
     # Visualize data if requested
     if args.visualize:
@@ -477,8 +495,8 @@ def main():
     y = df_processed[target]
     
     # Save the imputer for prediction
-    joblib.dump(imputer, 'models/imputer_occupancy.pkl')
-    logger.info("Imputer saved to models/imputer_occupancy.pkl")
+    joblib.dump(imputer, f'{args.output_dir}/imputer_occupancy.pkl')
+    logger.info(f"Imputer saved to {args.output_dir}/imputer_occupancy.pkl")
     
     # Get feature names for importance plots
     feature_names = X_imputed.columns.tolist()
@@ -503,7 +521,7 @@ def main():
             logger.info(f"Tuned model - RMSE: {tuned_results['rmse']:.4f}, MAE: {tuned_results['mae']:.4f}, R²: {tuned_results['r2']:.4f}")
             
             # Visualize tuned model results
-            visualize_results(y_test, tuned_results['predictions'])
+            visualize_results(y_test, tuned_results['predictions'], output_dir="occupancy_prediction/visualizations")
             
             # Generate feature importance plot for the tuned model
             feature_importance_plot(tuned_model, feature_names)
@@ -512,13 +530,32 @@ def main():
             best_model = tuned_model
     
     # Save the best model
-    model_filename = './best_occupancy_predictor.pkl'
+    model_filename = f'{args.output_dir}/best_occupancy_predictor.pkl'
     joblib.dump(best_model, model_filename)
     logger.info(f"Best model saved to {model_filename}")
     
     # Visualize results for the best model
     best_model_results = results[best_model_name]
-    visualize_results(y_test, best_model_results['predictions'])
+    visualize_results(y_test, best_model_results['predictions'], output_dir="occupancy_prediction/visualizations")
+    
+    # Save predictions to CSV
+    predictions_df = pd.DataFrame({
+        'Actual': y_test.values,
+        'Predicted': best_model_results['predictions']
+    })
+    predictions_df.to_csv(f'{args.output_dir}/model_predictions.csv', index=False)
+    logger.info(f"Predictions saved to {args.output_dir}/model_predictions.csv")
+    
+    # Save model comparison results to the output directory
+    results_df = pd.DataFrame({
+        'Model': list(results.keys()),
+        'RMSE': [results[model]['rmse'] for model in results],
+        'MAE': [results[model]['mae'] for model in results],
+        'R²': [results[model]['r2'] for model in results],
+        'Training Time (s)': [results[model]['training_time'] for model in results]
+    })
+    results_df.to_csv(f'{args.output_dir}/model_comparison_occupancy.csv', index=False)
+    logger.info(f"Model comparison results saved to {args.output_dir}/model_comparison_occupancy.csv")
     
     # Print final results
     logger.info("\nFinal Results:")

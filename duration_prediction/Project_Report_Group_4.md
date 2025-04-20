@@ -495,36 +495,61 @@ Based on this error analysis, we identified several strategies for future improv
 
 We performed 10-fold cross-validation on our best model to get a more reliable estimate of its performance. This approach provides a better understanding of how the model will generalize to unseen data by training and testing it on different subsets of the data.
 
-**Cross-Validation Results:**
+**Cross-Validation Results for LightGBM (Best Model):**
 - RMSE: 58.65 minutes (±4.39)
 - MAE: 38.21 minutes (±0.99)
 - R²: 0.105 (±0.019)
 
 These results are consistent with our validation set performance, indicating that the model is stable and not significantly affected by the specific split of data used for evaluation. The small standard deviations across folds suggest that the model performs consistently across different subsets of the data.
 
+#### 6.3.2.1 Comparison with XGBoost
+
+We also performed cross-validation with a freshly trained XGBoost model to compare its performance with our best LightGBM model:
+
+**Cross-Validation Results for XGBoost:**
+- RMSE: 58.67 minutes (±4.47)
+- MAE: 37.93 minutes (±1.08)
+- R²: 0.104 (±0.026)
+
+The comparison reveals that both models perform nearly identically, with XGBoost having a slightly better MAE but marginally worse RMSE and R². This is interesting given that the LightGBM model was identified as the best model in our initial evaluation, while XGBoost underperformed in that analysis. The cross-validation results suggest that with proper tuning and preprocessing, XGBoost can match LightGBM's performance on this prediction task.
+
+**Figure 11: Model Comparison Metrics**
+
+![Model Comparison Metrics](visualizations/model_comparison_metrics.png)
+
+This visualization shows the RMSE and R² scores for both models with their standard deviations. The near-identical performance confirms that both tree-based boosting approaches are well-suited for this prediction task.
+
+**Figure 12: Comparison of Residual Distributions**
+
+![Residual Distributions Comparison](visualizations/model_comparison_residuals.png)
+
+The residual distributions for both models follow very similar patterns, indicating that they make similar types of errors when predicting session durations.
+
+#### 6.3.2.2 Detailed Error Analysis Visualizations
+
 The cross-validation analysis produced several visualizations that provide deeper insights into model performance:
 
-**Figure 11: Cross-Validation Predictions vs. Actual Values**
+**Figure 13: LightGBM Cross-Validation Predictions vs. Actual Values**
 
-![Cross-Validation Predictions](visualizations/cv_predictions_vs_actual.png)
+![LightGBM Predictions](visualizations/cv_lightgbm_(best_model)_predictions_vs_actual.png)
 
 This plot shows the relationship between predicted and actual values across all cross-validation folds. The diagonal line represents perfect predictions, while the scatter points show actual model predictions. The spread of points around the diagonal indicates prediction error.
 
-**Figure 12: Cross-Validation Residuals**
+**Figure 14: LightGBM Cross-Validation Residuals**
 
-![Cross-Validation Residuals](visualizations/cv_residuals.png)
+![LightGBM Residuals](visualizations/cv_lightgbm_(best_model)_residuals.png)
 
 The residual plot shows the difference between predicted and actual values across all predictions. The horizontal band pattern confirms that the model maintains consistent error levels across the range of predicted values, though the variance increases for longer durations.
 
-**Figure 13: Distribution of Cross-Validation Residuals**
+**Figure 15: Distribution of LightGBM Cross-Validation Residuals**
 
-![Residuals Distribution](visualizations/cv_residuals_distribution.png)
+![LightGBM Residuals Distribution](visualizations/cv_lightgbm_(best_model)_residuals_distribution.png)
 
 The distribution of residuals follows an approximately normal pattern with a slight right skew, suggesting that the model tends to underestimate session durations more often than it overestimates them.
 
-**Figure 14: Comparison of Actual vs. Predicted Distributions**
+**Figure 16: Comparison of LightGBM Actual vs. Predicted Distributions**
 
-![Distribution Comparison](visualizations/cv_distribution_comparison.png)
+![LightGBM Distribution Comparison](visualizations/cv_lightgbm_(best_model)_distribution_comparison.png)
 
 This density plot compares the distribution of actual session durations with the distribution of predicted durations. The predicted distribution is more concentrated around the mean, indicating that the model is better at predicting typical session durations but struggles with extreme values.
 
@@ -537,7 +562,7 @@ When applied to the test dataset (`lc_transformed_test_data.csv`), our model gen
 - Mean predicted duration: 79.11 minutes
 - Median predicted duration: 77.07 minutes
 
-**Figure 15: Additional Exploratory Visualizations by Category**
+**Figure 17: Additional Exploratory Visualizations by Category**
 
 ![Session Duration by Gender](visualizations/boxplot_Gender.png)
 
