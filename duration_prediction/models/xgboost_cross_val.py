@@ -31,7 +31,7 @@ def load_model(model_path):
     try:
         print(f"Loading model from {model_path}...")
         model = joblib.load(model_path)
-        print(f"Model loaded successfully")
+        print("Model loaded successfully")
         return model
     except Exception as e:
         print(f"Error loading model: {e}")

@@ -269,8 +269,9 @@ def feature_importance_plot(model, feature_names, output_dir="visualizations"):
     top_n = min(20, len(feature_names))
     plt.figure(figsize=(12, 8))
     plt.title('Feature Importances for Occupancy Prediction')
-    plt.bar(range(top_n), importances[indices[:top_n]], align='center')
-    plt.xticks(range(top_n), [feature_names[i] for i in indices[:top_n]], rotation=90)
+    plt.barh(range(top_n), importances[indices[:top_n]], align='center')
+    plt.yticks(range(top_n), [feature_names[i] for i in indices[:top_n]])
+    plt.xlabel('Importance Score')
     plt.tight_layout()
     plt.savefig(os.path.join(output_dir, 'occupancy_feature_importance.png'))
     plt.close()
@@ -432,7 +433,7 @@ def tune_hyperparameters(X_train, y_train, best_model_name):
 
 def main():
     parser = argparse.ArgumentParser(description='Train a model to predict occupancy in the Learning Center')
-    parser.add_argument('--data', type=str, default='occupancy_prediction/processed_data/occupancy_train_data.csv', help='Path to training data')
+    parser.add_argument('--data', type=str, default='occupancy_prediction/processed_data/occupancy_engineered_data.csv', help='Path to training data')
     parser.add_argument('--visualize', action='store_true', help='Generate visualizations')
     parser.add_argument('--tune', action='store_true', help='Perform hyperparameter tuning')
     parser.add_argument('--output_dir', type=str, default='occupancy_prediction/predictions', help='Directory to save predictions and models')

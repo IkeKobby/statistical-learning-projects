@@ -413,6 +413,7 @@ try:
             plt.figure(figsize=(12, 8))
             sns.barplot(data=importance_df.head(num_features_to_plot), x='importance', y='feature')
             plt.title(f'Top {num_features_to_plot} Feature Importances')
+            plt.xlabel('Importance Score')
             plt.tight_layout()
             plt.savefig('duration_prediction/visualizations/feature_importance.png')
             plt.close()

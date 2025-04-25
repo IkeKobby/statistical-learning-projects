@@ -1,0 +1,19 @@
+# Prediction Model Comparison Summary
+
+## Duration Prediction Analysis
+Previous mean: 78.12 minutes
+Current mean: 78.60 minutes
+Mean difference: 0.48 minutes
+Previous standard deviation: 12.33
+Current standard deviation: 16.87
+Correlation between models: 0.6045
+Percentage of significantly different predictions: 17.58%
+
+## Occupancy Prediction Analysis
+Previous mean: 13.40 people
+Current mean: 11.66 people
+Mean difference: -1.74 people
+Previous standard deviation: 3.43
+Current standard deviation: 4.71
+Correlation between models: 0.6550
+Percentage of significantly different predictions: 33.63%
